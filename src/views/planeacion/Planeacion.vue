@@ -870,20 +870,42 @@ let intervalRequest = ref(null);
 
 watch(isRequestedPlanningSuggested, (newValue) => {
     if (newValue) {
-        console.log('Requesting Orden Selected...');
+        console.log('Requesting Orden Selected.../consultando orden seleccionada...');
         intervalRequest.value = setInterval(async () => {
+            try {
+                const response = await fetch(`${backendUrlFC}api/orden-trabajo/${ordenId.value}/planning-status`,{
+                    headers: {
+                        Authorization: `Bearer ${authStore.token}`,
+                        Accept: "application/json",
+                    }
+                }
+            );
+            if (!response.ok) {
+                throw new Error('Error consultando el estado de la planeación automática.');
+            }
+            
+            const data = await response.json();
+            console.log('Estado de planeación: ', data.estado);
 
-            const data = await getOrdenTrabajo(ordenId.value);
-            ordenSelected.value = data.ordenTrabajo;
-            responsablesOnOrder.value = ordenSelected.value.responsablesOnOrder;
+            if (data.estado === 'GENERATED') {
+                clearInterval(intervalRequest.value);
+                intervalRequest.value = null;
+            }
 
-            console.log('Orden Seleccionada... ', ordenSelected.value);
+            const orden = await getOrdenTrabajo(ordenId.value);
+            ordenSelected.value = orden.ordenTrabajo;
+            responsablesOnOrder.value = ordenSelected.value.responsablesOnOrderWithOwnNotAvailableDates;
+
+            notifyPlanningGenerated();
             console.log('Responsables Orden... ', responsablesOnOrder.value);
+        } catch (error) {
+                console.error('Error consultando el estado de la planeación automática:', error);
+            }
         }, timeoutRequest.value);
     } else {
         console.log('No se ha solicitado generación de planeación automática');
         if (intervalRequest.value) {
-            notifyPlanningGenerated()
+            
             clearInterval(intervalRequest.value);
             intervalRequest.value = null;
         }

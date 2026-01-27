@@ -23,6 +23,6 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
-  base: "/-test-app-efeprimace/",
+  base: '/-test-app-efeprimace',
   cacheDir: false,
 })
